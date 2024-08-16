@@ -1,0 +1,38 @@
+[
+  {
+    "department_id": 1,
+    "department_name": "Observation Department",
+    "creation_date": "1990-06-01",
+    "department_description": "Responsible for collecting and analyzing weather data."
+  },
+  {
+    "department_id": 2,
+    "department_name": "Maintenance Department",
+    "creation_date": "1999-08-15",
+    "department_description": "Ensures all equipment is functioning correctly and performs regular maintenance."
+  },
+  {
+    "department_id": 3,
+    "department_name": "Research and Development",
+    "creation_date": "2001-02-20",
+    "department_description": "Focuses on developing new technologies and methodologies for weather observation."
+  },
+  {
+    "department_id": 4,
+    "department_name": "Data Analysis",
+    "creation_date": "2004-11-05",
+    "department_description": "Analyzes collected data to generate insights and reports."
+  },
+  {
+    "department_id": 5,
+    "department_name": "Logistics",
+    "creation_date": "2019-03-12",
+    "department_description": "Manages the supply chain and logistics for field operations."
+  },
+  {
+    "department_id": 6,
+    "department_name": "Human Resources",
+    "creation_date": "2023-07-25",
+    "department_description": "Responsible for recruitment, training, and employee welfare."
+  }
+]

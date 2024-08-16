@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherDBMS - Home</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+    <header>
+        <h1>WeatherDBMS</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/observation">Observation Management</a></li>
+                <li><a href="/devices">Device Management</a></li>
+                <li><a href="/stations">Station Management</a></li>
+                <li><a href="/departments">Department and Employee Management</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="dashboard">
+            <h2>Dashboard</h2>
+            <div id="overview">
+                <div class="info-box">
+                    <h3>Current Observations</h3>
+                    <p id="observation-count">Loading...</p>
+                </div>
+                <div class="info-box">
+                    <h3>Total Stations</h3>
+                    <p id="station-count">Loading...</p>
+                </div>
+                <div class="info-box">
+                    <h3>Devices Status</h3>
+                    <p id="device-status">Loading...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="query">
+            <h2>Execute SQL Query</h2>
+            <textarea id="sql-query" rows="5" placeholder="Enter your SQL query here..."></textarea>
+            <button id="execute-query">Execute</button>
+
+            <h3>Query Result</h3>
+            <div id="query-result">No results yet.</div>
+
+            <h3>Quick Queries</h3>
+            <ul>
+                <li><button class="quick-query">SELECT * FROM Observation LIMIT 10;</button></li>
+                <li><button class="quick-query">SELECT * FROM Station LIMIT 10;</button></li>
+                <li><button class="quick-query">SELECT * FROM ObservationDevice LIMIT 10;</button></li>
+                <li><button class="quick-query">SELECT * FROM Employee LIMIT 10;</button></li>
+                <li><button class="quick-query">SELECT MAX(Temperature) AS MaxTemp, MIN(Temperature) AS MinTemp FROM Observation;</button></li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&#9400; WeatherDBMS - Developed by Shuaijun Liu</p>
+    </footer>
+
+    <script src="js/scripts.js"></script>
+    <script>
+        // Fetch and display the dashboard data
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/dashboard')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('observation-count').textContent = data.observationCount;
+                    document.getElementById('station-count').textContent = data.stationCount;
+                    document.getElementById('device-status').textContent = data.deviceStatus;
+                });
+
+            // Add event listener for executing custom SQL queries
+            document.getElementById('execute-query').addEventListener('click', function() {
+                const query = document.getElementById('sql-query').value;
+                executeQuery(query);
+            });
+
+            // Add event listeners for quick queries
+            const quickQueryButtons = document.querySelectorAll('.quick-query');
+            quickQueryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const query = button.textContent;
+                    document.getElementById('sql-query').value = query;
+                    executeQuery(query);
+                });
+            });
+
+            function executeQuery(query) {
+                fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('query-result').textContent = 'Error: ' + data.error;
+                    } else {
+                        document.getElementById('query-result').textContent = JSON.stringify(data.result, null, 2);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

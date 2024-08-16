@@ -1,0 +1,38 @@
+/* Department and Employee Management specific styles */
+#department-list,
+#add-department,
+#edit-department,
+#employee-list,
+#add-employee,
+#edit-employee {
+    margin-bottom: 20px;
+}
+
+#edit-department,
+#edit-employee {
+    display: none;
+}
+
+#employee-list {
+    margin-top: 40px;
+}
+
+#add-employee,
+#edit-employee {
+    margin-top: 40px;
+}
+
+
+
+footer {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 10px 0;
+    margin-top: 140px;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+}

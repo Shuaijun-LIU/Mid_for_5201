@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/devices.css">
+</head>
+<body>
+    <header>
+        <h1>WeatherDBMS</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/observation">Observation Management</a></li>
+                <li><a href="/devices">Device Management</a></li>
+                <li><a href="/stations">Station Management</a></li>
+                <li><a href="/departments">Department and Employee Management</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="device-list">
+            <h2>Device List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Model</th>
+                        <th>Serial Number</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="device-table-body">
+                    <!-- Devices will be dynamically populated here -->
+                </tbody>
+            </table>
+        </section>
+
+        <section id="add-device">
+            <h2>Add Device</h2>
+            <form id="device-form">
+                <label for="device-name">Device Name:</label>
+                <input type="text" id="device-name" name="device_name" required>
+                
+                <label for="model">Model:</label>
+                <input type="text" id="model" name="model" required>
+
+                <label for="serial-number">Serial Number:</label>
+                <input type="text" id="serial-number" name="serial_number" required>
+
+                <label for="status">Status:</label>
+                <select id="status" name="status">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+
+                <button type="submit">Add Device</button>
+            </form>
+        </section>
+
+        <section id="edit-device" style="display: none;">
+            <h2>Edit Device</h2>
+            <form id="edit-device-form">
+                <input type="hidden" id="edit-device-id" name="id">
+
+                <label for="edit-device-name">Device Name:</label>
+                <input type="text" id="edit-device-name" name="device_name" required>
+                
+                <label for="edit-model">Model:</label>
+                <input type="text" id="edit-model" name="model" required>
+
+                <label for="edit-serial-number">Serial Number:</label>
+                <input type="text" id="edit-serial-number" name="serial_number" required>
+
+                <label for="edit-status">Status:</label>
+                <select id="edit-status" name="status">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+
+                <button type="submit">Save Changes</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>Developed by Shuaijun Liu</p>
+    </footer>
+
+    <script src="js/scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDevices();
+
+            // Add device form submission
+            document.getElementById('device-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+                const data = {
+                    device_name: formData.get('device_name'),
+                    model: formData.get('model'),
+                    serial_number: formData.get('serial_number'),
+                    status: formData.get('status')
+                };
+                
+                fetch('/devices/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        loadDevices();
+                        this.reset();
+                    } else {
+                        alert('Error adding device: ' + result.error);
+                    }
+                });
+            });
+
+            // Edit device form submission
+            document.getElementById('edit-device-form').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const formData = new FormData(this);
+                const data = {
+                    id: formData.get('id'),
+                    device_name: formData.get('device_name'),
+                    model: formData.get('model'),
+                    serial_number: formData.get('serial_number'),
+                    status: formData.get('status')
+                };
+                
+                fetch('/devices/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        loadDevices();
+                        document.getElementById('edit-device').style.display = 'none';
+                    } else {
+                        alert('Error editing device: ' + result.error);
+                    }
+                });
+            });
+        });
+
+        function loadDevices() {
+            fetch('/devices/list')
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById('device-table-body');
+                    tableBody.innerHTML = '';
+                    data.devices.forEach(device => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${device.device_name}</td>
+                            <td>${device.model}</td>
+                            <td>${device.serial_number}</td>
+                            <td>${device.status}</td>
+                            <td>
+                                <button onclick="editDevice(${device.id})">Edit</button>
+                                <button onclick="deleteDevice(${device.id})">Delete</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                });
+        }
+
+        function editDevice(id) {
+            fetch(`/devices/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    const device = data.device;
+                    document.getElementById('edit-device-id').value = device.id;
+                    document.getElementById('edit-device-name').value = device.device_name;
+                    document.getElementById('edit-model').value = device.model;
+                    document.getElementById('edit-serial-number').value = device.serial_number;
+                    document.getElementById('edit-status').value = device.status;
+                    document.getElementById('edit-device').style.display = 'block';
+                });
+        }
+
+        function deleteDevice(id) {
+            if (confirm('Are you sure you want to delete this device?')) {
+                fetch(`/devices/delete/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        loadDevices();
+                    } else {
+                        alert('Error deleting device: ' + result.error);
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

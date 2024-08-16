@@ -1,0 +1,102 @@
+[
+  {
+    "device_id": 1,
+    "device_name": "WeatherTech",
+    "model": "WX-200",
+    "serial_number": "WT200-001",
+    "status": "Online",
+    "installation_date": "2022-03-15",
+    "sensor_accuracy": "±0.1°C",
+    "maintainer_id": 14
+  },
+  {
+    "device_id": 2,
+    "device_name": "MeteoEquip",
+    "model": "ME-350",
+    "serial_number": "ME350-022",
+    "status": "Offline",
+    "installation_date": "2021-07-20",
+    "sensor_accuracy": "±0.5 hPa",
+    "maintainer_id": 20
+  },
+  {
+    "device_id": 3,
+    "device_name": "ClimateCorp",
+    "model": "CC-120",
+    "serial_number": "CC120-078",
+    "status": "Maintenance",
+    "installation_date": "2023-01-10",
+    "sensor_accuracy": "±1% RH",
+    "maintainer_id": 32
+  },
+  {
+    "device_id": 4,
+    "device_name": "WeatherMakers",
+    "model": "WM-500",
+    "serial_number": "WM500-034",
+    "status": "Online",
+    "installation_date": "2022-11-05",
+    "sensor_accuracy": "±0.2°C",
+    "maintainer_id": 2
+  },
+  {
+    "device_id": 5,
+    "device_name": "EnviroSensors",
+    "model": "ES-800",
+    "serial_number": "ES800-145",
+    "status": "Online",
+    "installation_date": "2020-06-18",
+    "sensor_accuracy": "±0.3% CO2",
+    "maintainer_id": 26
+  },
+  {
+    "device_id": 6,
+    "device_name": "AeroWeather",
+    "model": "AW-400",
+    "serial_number": "AW400-002",
+    "status": "Offline",
+    "installation_date": "2019-10-12",
+    "sensor_accuracy": "±0.15°C",
+    "maintainer_id": 14
+  },
+  {
+    "device_id": 7,
+    "device_name": "SkyInstruments",
+    "model": "SI-250",
+    "serial_number": "SI250-019",
+    "status": "Maintenance",
+    "installation_date": "2022-05-25",
+    "sensor_accuracy": "±0.7 hPa",
+    "maintainer_id": 20
+  },
+  {
+    "device_id": 8,
+    "device_name": "ClimaSense",
+    "model": "CS-300",
+    "serial_number": "CS300-056",
+    "status": "Online",
+    "installation_date": "2021-12-01",
+    "sensor_accuracy": "±0.4% CO2",
+    "maintainer_id": 2
+  },
+  {
+    "device_id": 9,
+    "device_name": "EnviroMonitor",
+    "model": "EM-100",
+    "serial_number": "EM100-011",
+    "status": "Online",
+    "installation_date": "2020-03-10",
+    "sensor_accuracy": "±0.2°C",
+    "maintainer_id": 32
+  },
+  {
+    "device_id": 10,
+    "device_name": "WeatherPro",
+    "model": "WP-600",
+    "serial_number": "WP600-099",
+    "status": "Offline",
+    "installation_date": "2018-08-15",
+    "sensor_accuracy": "±0.6 hPa",
+    "maintainer_id": 26
+  }
+]

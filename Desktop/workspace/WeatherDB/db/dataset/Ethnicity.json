@@ -1,0 +1,18 @@
+[
+  {
+    "ethnicity_type_id": 1,
+    "ethnicity_type": "Caucasian"
+  },
+  {
+    "ethnicity_type_id": 2,
+    "ethnicity_type": "Hispanic"
+  },
+  {
+    "ethnicity_type_id": 3,
+    "ethnicity_type": "African American"
+  },
+  {
+    "ethnicity_type_id": 4,
+    "ethnicity_type": "Asian"
+  }
+]

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observation Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/observation.css">
+</head>
+<body>
+    <header>
+        <h1>WeatherDBMS</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/observation">Observation Management</a></li>
+                <li><a href="/devices">Device Management</a></li>
+                <li><a href="/stations">Station Management</a></li>
+                <li><a href="/departments">Department and Employee Management</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="observation-list">
+            <h2>Observation List</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Station</th>
+                        <th>Device</th>
+                        <th>Temperature</th>
+                        <th>Pressure</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="observation-table-body">
+                    <!-- Observations will be dynamically populated here -->
+                </tbody>
+            </table>
+        </section>
+
+        <section id="add-observation">
+            <h2>Add Observation</h2>
+            <form id="observation-form">
+                <label for="time">Time:</label>
+                <input type="datetime-local" id="time" name="time" required>
+                
+                <label for="station">Station:</label>
+                <input type="text" id="station" name="station" required>
+
+                <label for="device">Device:</label>
+                <input type="text" id="device" name="device" required>
+
+                <label for="temperature">Temperature:</label>
+                <input type="number" step="0.1" id="temperature" name="temperature" required>
+
+                <label for="pressure">Pressure:</label>
+                <input type="number" step="0.1" id="pressure" name="pressure" required>
+
+                <button type="submit">Add Observation</button>
+            </form>
+        </section>
+
+        <section id="edit-observation" style="display: none;">
+            <h2>Edit Observation</h2>
+            <form id="edit-observation-form">
+                <input type="hidden" id="edit-id" name="id">
+
+                <label for="edit-time">Time:</label>
+                <input type="datetime-local" id="edit-time" name="time" required>
+
+                <label for="edit-station">Station:</label>
+                <input type="text" id="edit-station" name="station" required>
+
+                <label for="edit-device">Device:</label>
+                <input type="text" id="edit-device" name="device" required>
+
+                <label for="edit-temperature">Temperature:</label>
+                <input type="number" step="0.1" id="edit-temperature" name="temperature" required>
+
+                <label for="edit-pressure">Pressure:</label>
+                <input type="number" step="0.1" id="edit-pressure" name="pressure" required>
+
+                <button type="submit">Save Changes</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&#9400; WeatherDBMS - Developed by Shuaijun Liu</p>
+    </footer>
+
+    <script src="js/scripts.js"></script>
+    <!-- 其余部分保持不变，主要修改表单和JavaScript部分 -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        loadObservations();
+
+        // Add observation form submission
+        document.getElementById('observation-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const data = {
+                time_id: formData.get('time_id'),
+                station_id: formData.get('station'),
+                observation_device_id: formData.get('device'),
+                temperature: formData.get('temperature'),
+                pressure: formData.get('pressure')
+            };
+            
+            fetch('/observation/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadObservations();
+                    this.reset();
+                } else {
+                    alert('Error adding observation: ' + result.error);
+                }
+            });
+        });
+
+        // Edit observation form submission
+        document.getElementById('edit-observation-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const data = {
+                time_id: formData.get('id'),
+                station_id: formData.get('station'),
+                observation_device_id: formData.get('device'),
+                temperature: formData.get('temperature'),
+                pressure: formData.get('pressure')
+            };
+            
+            fetch('/observation/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadObservations();
+                    document.getElementById('edit-observation').style.display = 'none';
+                } else {
+                    alert('Error editing observation: ' + result.error);
+                }
+            });
+        });
+    });
+
+    function loadObservations() {
+        fetch('/observation/list')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('observation-table-body');
+                tableBody.innerHTML = '';
+                data.observations.forEach(obs => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(obs.Year, obs.Month - 1, obs.Day, obs.Hour).toLocaleString()}</td>
+                        <td>${obs.station_id}</td>
+                        <td>${obs.observation_device_id}</td>
+                        <td>${obs.Temperature}</td>
+                        <td>${obs.Pressure}</td>
+                        <td>
+                            <button onclick="editObservation(${obs.time_id}, ${obs.station_id}, ${obs.observation_device_id})">Edit</button>
+                            <button onclick="deleteObservation(${obs.time_id}, ${obs.station_id}, ${obs.observation_device_id})">Delete</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            });
+    }
+
+    function editObservation(time_id, station_id, observation_device_id) {
+        fetch(`/observation/${time_id}/${station_id}/${observation_device_id}`)
+            .then(response => response.json())
+            .then(data => {
+                const obs = data.observation;
+                document.getElementById('edit-id').value = obs.time_id;
+                document.getElementById('edit-station').value = obs.station_id;
+                document.getElementById('edit-device').value = obs.observation_device_id;
+                document.getElementById('edit-temperature').value = obs.Temperature;
+                document.getElementById('edit-pressure').value = obs.Pressure;
+                document.getElementById('edit-observation').style.display = 'block';
+            });
+    }
+
+    function deleteObservation(time_id, station_id, observation_device_id) {
+        if (confirm('Are you sure you want to delete this observation?')) {
+            fetch(`/observation/delete/${time_id}/${station_id}/${observation_device_id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadObservations();
+                } else {
+                    alert('Error deleting observation: ' + result.error);
+                }
+            });
+        }
+    }
+    </script>
+</body>
+</html>

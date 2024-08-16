@@ -1,0 +1,10 @@
+[
+  {
+    "indicator_status_type": 0,
+    "indicator_status_name": "normal"
+  },
+  {
+    "indicator_status_type": 1,
+    "indicator_status_name": "Abnormal"
+  }
+]

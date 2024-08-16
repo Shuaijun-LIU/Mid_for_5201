@@ -1,0 +1,46 @@
+[
+    {
+        "event_id": 1,
+        "event_name": "Heat Wave"
+    },
+    {
+        "event_id": 2,
+        "event_name": "Cold Wave"
+    },
+    {
+        "event_id": 3,
+        "event_name": "High Wind"
+    },
+    {
+        "event_id": 4,
+        "event_name": "Snowfall"
+    },
+    {
+        "event_id": 5,
+        "event_name": "Heavy Rainfall"
+    },
+    {
+        "event_id": 6,
+        "event_name": "Hail"
+    },
+    {
+        "event_id": 7,
+        "event_name": "Thunderstorm"
+    },
+    {
+        "event_id": 8,
+        "event_name": "Fog/Haze"
+    },
+    {
+        "event_id": 9,
+        "event_name": "Pressure Drop/Rise"
+    },
+    {
+        "event_id": 10,
+        "event_name": "Humidity Change"
+    },
+    {
+        "event_id": 0,
+        "event_name": "No specific event"
+    }
+]

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station Management</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/stations.css">
+</head>
+<body>
+    <header>
+        <h1>WeatherDBMS</h1>
+        <nav>
+            <a href="/home">Home</a>
+            <a href="/observation">Observation Management</a>
+            <a href="/devices">Device Management</a>
+            <a href="/stations">Station Management</a>
+            <a href="/departments">Department & Employee Management</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Station Management</h2>
+        <section>
+            <h3>Station List</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Station Name</th>
+                        <th>Location</th>
+                        <th>Begin Date</th>
+                        <th>End Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% stations.forEach(station => { %>
+                    <tr>
+                        <td><%= station.station_name %></td>
+                        <td><%= station.location %></td>
+                        <td><%= station.begin_date %></td>
+                        <td><%= station.end_date %></td>
+                        <td>
+                            <form action="/stations/edit/<%= station.station_id %>" method="post">
+                                <input type="text" name="station_name" value="<%= station.station_name %>" required>
+                                <input type="text" name="location" value="<%= station.location %>" required>
+                                <input type="date" name="begin_date" value="<%= station.begin_date %>" required>
+                                <input type="date" name="end_date" value="<%= station.end_date %>">
+                                <button type="submit">Edit</button>
+                            </form>
+                            <form action="/stations/delete/<%= station.station_id %>" method="post">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </section>
+        <section>
+            <h3>Add New Station</h3>
+            <form action="/stations/add" method="post">
+                <input type="text" name="station_name" placeholder="Station Name" required>
+                <input type="text" name="location" placeholder="Location" required>
+                <input type="date" name="begin_date" required>
+                <input type="date" name="end_date">
+                <button type="submit">Add Station</button>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>Developed by [Your Name]</p>
+    </footer>
+</body>
+</html>
