@@ -1,0 +1,119 @@
+{
+    "Ant Colony Optimization": {
+        "Best Path": [
+            2,
+            0,
+            4,
+            3,
+            1
+        ],
+        "Best Cost": 2.572959481408006,
+        "Execution Time": 0.6062600612640381
+    },
+    "Brute Force": {
+        "Best Path": [
+            1,
+            2,
+            0,
+            4,
+            3
+        ],
+        "Best Cost": 2.572959481408006,
+        "Execution Time": 0.00011420249938964844
+    },
+    "Deep Q-Learning": {
+        "Best Path": [
+            2,
+            0,
+            4,
+            3,
+            1
+        ],
+        "Best Cost": 2.572959481408006,
+        "Execution Time": 5.474694728851318
+    },
+    "Nearest Neighbor": {
+        "Best Path": [
+            0,
+            4,
+            1,
+            3,
+            2,
+            0
+        ],
+        "Best Cost": 2.855479593040489,
+        "Execution Time": 2.7894973754882812e-05
+    },
+    "MST Approximation": {
+        "Best Path": [
+            0,
+            4,
+            1,
+            2,
+            3,
+            0
+        ],
+        "Best Cost": 2.9815917198923323,
+        "Execution Time": 0.0003249645233154297
+    },
+    "Pointer Networks": {
+        "Best Path": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            0
+        ],
+        "Best Cost": 3.065529909793967,
+        "Execution Time": 2.040747880935669
+    },
+    "Dynamic Programming": {
+        "Best Path": [
+            0,
+            4,
+            3,
+            1,
+            2,
+            0
+        ],
+        "Best Cost": 2.5729594814080063,
+        "Execution Time": 0.00012302398681640625
+    },
+    "Simulated Annealing": {
+        "Best Path": [
+            2,
+            0,
+            4,
+            3,
+            1,
+            2
+        ],
+        "Best Cost": 2.572959481408006,
+        "Execution Time": 0.002309083938598633
+    },
+    "Greedy Algorithm": {
+        "Best Path": [
+            0,
+            4,
+            1,
+            3,
+            2,
+            0
+        ],
+        "Best Cost": 2.855479593040489,
+        "Execution Time": 2.002716064453125e-05
+    },
+    "Particle Swarm Optimization": {
+        "Best Path": [
+            2,
+            0,
+            4,
+            3,
+            1,
+            2
+        ],
+        "Best Cost": 2.572959481408006,
+        "Execution Time": 0.12875699996948242
+    }
+}
