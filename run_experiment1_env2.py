@@ -6,11 +6,12 @@ Target region: C
 """
 
 from environment2 import GridWorld2
-from q_learning import train_q_learning, set_random_seed
+from q_learning_optimized import train_q_learning, set_random_seed
 from visualization import plot_convergence, plot_q_table_heatmap, plot_grid_policy
 from data_utils import save_training_data
 from experiment_utils import print_experiment_stats
 import numpy as np
+import os
 
 
 def print_q_table_summary_env2(env, q_table):
@@ -46,7 +47,7 @@ def print_q_table_summary_env2(env, q_table):
     print("\n" + "=" * 60)
 
 
-def main(alpha=0.1, gamma=0.9, exp_suffix="", grid_size=(15, 15)):
+def main(alpha=0.1, gamma=0.9, exp_suffix="", grid_size=(20, 20), file_suffix=""):
     """
     Run experiment 1 with Environment 2: F -> C
     
@@ -54,7 +55,8 @@ def main(alpha=0.1, gamma=0.9, exp_suffix="", grid_size=(15, 15)):
         alpha: learning rate
         gamma: discount factor
         exp_suffix: suffix for experiment directory name
-        grid_size: grid dimensions for Environment 2
+        grid_size: grid dimensions for Environment 2 (default: 20x20)
+        file_suffix: suffix for individual file names (for parameter grid)
     """
     # set random seed for reproducibility
     set_random_seed(42)
@@ -70,21 +72,27 @@ def main(alpha=0.1, gamma=0.9, exp_suffix="", grid_size=(15, 15)):
     # setup experiment
     initial_region = 'F'
     target_region = 'C'
+    # Include grid size in experiment name
+    grid_str = f"grid{grid_size[0]}x{grid_size[1]}"
     exp_name = f"env2_exp1{exp_suffix}"
     save_dir = f"results/{exp_name}"
     
-    # create environment (use smaller grid for faster training)
-    if grid_size == (20, 20):
-        grid_size = (12, 12)  # Reduce to 12x12 for reasonable training time
+    # create output directory
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # create environment (20x20 grid, 400 states)
     env = GridWorld2(grid_size=grid_size, 
                      initial_region=initial_region, 
                      target_region=target_region)
     
     # hyperparameters (adjusted for larger state space)
-    n_episodes = 2000  # More episodes for grid environment
+    # Scale episodes based on grid size
+    base_episodes = 1500
+    grid_factor = (grid_size[0] * grid_size[1]) / 400  # 400 is base 20x20
+    n_episodes = int(base_episodes * grid_factor)
     epsilon_start = 0.9
     epsilon_min = 0.1
-    log_interval = 200  # Less frequent logging for larger state space
+    log_interval = 100  # More frequent logging for progress tracking
     
     print(f"Hyperparameters:")
     print(f"  Episodes: {n_episodes}")
@@ -111,44 +119,45 @@ def main(alpha=0.1, gamma=0.9, exp_suffix="", grid_size=(15, 15)):
     print_q_table_summary_env2(env, final_q_table)
     
     # visualize
+    # Add file suffix to visualization files: include grid size and parameters
+    if file_suffix:
+        viz_suffix = f"_{grid_str}{file_suffix}"
+    else:
+        viz_suffix = f"_{grid_str}"
+    
     print("\nGenerating convergence plot...")
     plot_convergence(
         episode_rewards, episode_steps, q_table_history,
-        save_path=f'{save_dir}/convergence_plot.png',
+        save_path=f'{save_dir}/convergence_plot{viz_suffix}.png',
         show_plot=False,
-        title_suffix=" - Experiment 1 (F -> C) - Environment 2"
+        title_suffix=f" - Experiment 1 (F -> C) - Environment 2 - {grid_str}"
     )
     
-    print("Generating Q-table heatmap...")
+    print("Generating Q-table statistics (unified heatmap and comparison)...")
+    # For large Q-tables, both heatmap and comparison are saved to the same unified file
     plot_q_table_heatmap(
         final_q_table, state_names=None,
-        save_path=f'{save_dir}/qtable_heatmap.png',
+        save_path=f'{save_dir}/qtable_statistics{viz_suffix}.png',
         show_plot=False,
-        title=" - Experiment 1 (F -> C) - Environment 2"
+        title=f" - Experiment 1 (F -> C) - Environment 2 - {grid_str}",
+        initial_q_table=initial_q_table  # Pass initial Q-table for comparison
     )
     
     print("Generating grid policy visualization...")
     plot_grid_policy(
         env, final_q_table, initial_region, target_region,
-        save_path=f'{save_dir}/final_policy.png',
+        save_path=f'{save_dir}/final_policy{viz_suffix}.png',
         show_plot=False,
-        title=" - Experiment 1 (F -> C) - Environment 2"
-    )
-    
-    print("Generating Q-table comparison...")
-    from visualization import plot_q_table_comparison
-    plot_q_table_comparison(
-        initial_q_table, final_q_table, state_names=None,
-        save_path=f'{save_dir}/qtable_comparison.png',
-        show_plot=False,
-        title=" - Experiment 1 (F -> C) - Environment 2"
+        title=f" - Experiment 1 (F -> C) - Environment 2 - {grid_str}"
     )
     
     # save data
     print("\nSaving training data...")
+    # Include grid size and parameters in training data filename
+    training_name = f"{exp_name}_{grid_str}{file_suffix}" if file_suffix else f"{exp_name}_{grid_str}"
     save_training_data(
         episode_rewards, episode_steps, q_table_history, final_q_table,
-        save_dir=save_dir, experiment_name=exp_name, initial_q_table=initial_q_table
+        save_dir=save_dir, experiment_name=training_name, initial_q_table=initial_q_table
     )
     
     print("\n" + "=" * 60)
@@ -161,6 +170,72 @@ def main(alpha=0.1, gamma=0.9, exp_suffix="", grid_size=(15, 15)):
     return exp_name, save_dir
 
 
+def run_parameter_grid(alpha_list=[0.05, 0.1, 0.2], gamma_list=[0.8, 0.9, 0.95], 
+                       grid_size=(20, 20)):
+    """
+    Run experiments with multiple parameter combinations.
+    
+    Args:
+        alpha_list: list of learning rates to test
+        gamma_list: list of discount factors to test
+        grid_size: grid dimensions for Environment 2
+    """
+    # set random seed for reproducibility
+    set_random_seed(42)
+    
+    grid_str = f"grid{grid_size[0]}x{grid_size[1]}"
+    print("=" * 70)
+    print(f"Multi-Parameter Experiment: Experiment 1 (F -> C) - {grid_str}")
+    print("=" * 70)
+    print(f"Testing {len(alpha_list)} alpha values × {len(gamma_list)} gamma values")
+    print(f"Total combinations: {len(alpha_list) * len(gamma_list)}")
+    print()
+    
+    results = []
+    
+    for alpha in alpha_list:
+        for gamma in gamma_list:
+            # create suffix for file names (not directory)
+            file_suffix = f"_alpha{alpha}_gamma{gamma}"
+            file_suffix = file_suffix.replace(".", "_")  # replace dots for file names
+            
+            print("\n" + "=" * 70)
+            print(f"Running: alpha={alpha}, gamma={gamma}, grid={grid_size}")
+            print("=" * 70)
+            
+            try:
+                exp_name, save_dir = main(alpha=alpha, gamma=gamma, grid_size=grid_size, 
+                                         file_suffix=file_suffix)
+                results.append({
+                    'alpha': alpha,
+                    'gamma': gamma,
+                    'grid_size': grid_size,
+                    'exp_name': exp_name,
+                    'save_dir': save_dir,
+                    'success': True
+                })
+            except Exception as e:
+                print(f"Error running alpha={alpha}, gamma={gamma}, grid={grid_size}: {e}")
+                results.append({
+                    'alpha': alpha,
+                    'gamma': gamma,
+                    'grid_size': grid_size,
+                    'success': False,
+                    'error': str(e)
+                })
+    
+    # print summary
+    print("\n" + "=" * 70)
+    print("Multi-Parameter Experiment Summary")
+    print("=" * 70)
+    print(f"Total experiments: {len(results)}")
+    print(f"Successful: {sum(1 for r in results if r['success'])}")
+    print(f"Failed: {sum(1 for r in results if not r['success'])}")
+    print()
+    
+    return results
+
+
 if __name__ == "__main__":
     import sys
     
@@ -168,8 +243,7 @@ if __name__ == "__main__":
         # run with default parameter grid
         alpha_list = [0.05, 0.1, 0.2]
         gamma_list = [0.8, 0.9, 0.95]
-        # Note: parameter grid not implemented for env2 yet
-        print("Parameter grid not implemented for Environment 2 yet")
+        run_parameter_grid(alpha_list, gamma_list, grid_size=(20, 20))
     else:
         # run single experiment with default parameters
         main()

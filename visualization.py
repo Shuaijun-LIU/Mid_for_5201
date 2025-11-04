@@ -138,9 +138,10 @@ def plot_convergence(episode_rewards, episode_steps, q_table_history,
         plt.close()
 
 
-def plot_q_table_heatmap(q_table, state_names=None, save_path=None, show_plot=True, title=""):
+def plot_q_table_heatmap(q_table, state_names=None, save_path=None, show_plot=True, title="", initial_q_table=None):
     """
-    Plot Q-table as heatmap.
+    Plot Q-table as heatmap (for small Q-tables) or unified statistical summary (for large Q-tables).
+    For large Q-tables, combines heatmap and comparison into a single unified plot.
     
     Args:
         q_table: Q-table array (n_states x n_states)
@@ -148,7 +149,16 @@ def plot_q_table_heatmap(q_table, state_names=None, save_path=None, show_plot=Tr
         save_path: path to save figure
         show_plot: whether to display plot
         title: plot title
+        initial_q_table: optional initial Q-table for comparison (if provided, shows comparison)
     """
+    n_states = q_table.shape[0]
+    
+    # For large Q-tables (>= 100 states), use unified statistical summary
+    if n_states >= 100:
+        plot_unified_q_table_statistics(q_table, initial_q_table, state_names, save_path, show_plot, title)
+        return
+    
+    # For small Q-tables, use traditional heatmap
     fig, ax = plt.subplots(figsize=(10, 8))
     
     # create heatmap
@@ -194,10 +204,385 @@ def plot_q_table_heatmap(q_table, state_names=None, save_path=None, show_plot=Tr
         plt.close()
 
 
+def plot_unified_q_table_statistics(q_table, initial_q_table=None, state_names=None, save_path=None, show_plot=True, title=""):
+    """
+    Unified Q-table statistics plot combining heatmap and comparison.
+    Creates a single 2x2 layout with 4 valuable subplots, with flatter aspect ratio.
+    
+    Args:
+        q_table: final Q-table array (n_states x n_states)
+        initial_q_table: optional initial Q-table for comparison
+        state_names: list of state names for labels (not used)
+        save_path: path to save figure
+        show_plot: whether to display plot
+        title: plot title
+    """
+    # Use flatter aspect ratio (wider, shorter)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 8))  # Wider and shorter
+    
+    # Flatten Q-table for analysis
+    q_values = q_table.flatten()
+    non_zero_q = q_values[q_values != 0]
+    
+    # Determine if we have initial Q-table for comparison
+    has_initial = initial_q_table is not None
+    
+    if has_initial:
+        initial_q = initial_q_table.flatten()
+        q_diff = q_values - initial_q
+        non_zero_diff = q_diff[q_diff != 0]
+        max_initial = np.max(initial_q_table, axis=1)
+        max_final = np.max(q_table, axis=1)
+    else:
+        max_final = np.max(q_table, axis=1)
+    
+    # Plot 1 (Top-left): Max Q-value per state (with comparison if available)
+    if has_initial:
+        axes[0, 0].plot(max_initial, 'o-', markersize=2, linewidth=0.5, alpha=0.5, 
+                       label='Initial', color='blue')
+        axes[0, 0].plot(max_final, 'o-', markersize=2, linewidth=0.5, alpha=0.7, 
+                       label='Final', color='green')
+        axes[0, 0].set_title('Max Q-value per State: Initial vs Final')
+        axes[0, 0].legend()
+    else:
+        axes[0, 0].plot(max_final, 'o-', markersize=2, linewidth=0.5, alpha=0.7, color='steelblue')
+        axes[0, 0].set_title('Maximum Q-value per State')
+    axes[0, 0].set_xlabel('State Index')
+    axes[0, 0].set_ylabel('Max Q-value')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Plot 2 (Top-right): Non-zero Q-value distribution
+    if len(non_zero_q) > 0:
+        axes[0, 1].hist(non_zero_q, bins=30, alpha=0.7, color='lightgreen', edgecolor='black')
+        axes[0, 1].set_xlabel('Q-value')
+        axes[0, 1].set_ylabel('Frequency')
+        axes[0, 1].set_title(f'Non-zero Q-value Distribution (n={len(non_zero_q):,})')
+        axes[0, 1].grid(True, alpha=0.3)
+    else:
+        axes[0, 1].text(0.5, 0.5, 'No non-zero Q-values', 
+                       ha='center', va='center', transform=axes[0, 1].transAxes)
+        axes[0, 1].set_title('Non-zero Q-value Distribution')
+    
+    # Plot 3 (Bottom-left): Non-zero changes (if initial available) or Q-value range distribution
+    if has_initial and len(non_zero_diff) > 0:
+        axes[1, 0].hist(non_zero_diff, bins=30, alpha=0.7, color='salmon', edgecolor='black')
+        axes[1, 0].axvline(x=0, color='red', linestyle='--', linewidth=2, label='No change')
+        axes[1, 0].set_xlabel('Q-value Change')
+        axes[1, 0].set_ylabel('Frequency')
+        axes[1, 0].set_title(f'Non-zero Q-value Changes (n={len(non_zero_diff):,})')
+        axes[1, 0].legend()
+        axes[1, 0].grid(True, alpha=0.3)
+    elif len(non_zero_q) > 0:
+        # Show Q-value range distribution instead
+        q_ranges = ['0-20', '20-40', '40-60', '60-80', '80-100', '>100']
+        q_counts = [
+            np.sum((non_zero_q >= 0) & (non_zero_q < 20)),
+            np.sum((non_zero_q >= 20) & (non_zero_q < 40)),
+            np.sum((non_zero_q >= 40) & (non_zero_q < 60)),
+            np.sum((non_zero_q >= 60) & (non_zero_q < 80)),
+            np.sum((non_zero_q >= 80) & (non_zero_q <= 100)),
+            np.sum(non_zero_q > 100)
+        ]
+        axes[1, 0].bar(q_ranges, q_counts, alpha=0.7, color='coral', edgecolor='black')
+        axes[1, 0].set_xlabel('Q-value Range')
+        axes[1, 0].set_ylabel('Count')
+        axes[1, 0].set_title('Distribution of Q-values by Range')
+        axes[1, 0].grid(True, alpha=0.3, axis='y')
+        axes[1, 0].tick_params(axis='x', rotation=45)
+    else:
+        axes[1, 0].axis('off')
+        axes[1, 0].text(0.5, 0.5, 'No data to visualize', 
+                       ha='center', va='center', transform=axes[1, 0].transAxes)
+    
+    # Plot 4 (Bottom-right): Statistics summary
+    axes[1, 1].axis('off')
+    if has_initial:
+        stats_text = f"""
+    Q-table Statistics{title}
+    
+    Total States: {q_table.shape[0]}
+    Total Entries: {q_table.size:,}
+    
+    Initial Q-table:
+      Mean: {np.mean(initial_q):.4f}
+      Non-zero: {np.sum(initial_q != 0):,}
+    
+    Final Q-table:
+      Mean: {np.mean(q_values):.4f}
+      Std:  {np.std(q_values):.4f}
+      Min:  {np.min(q_values):.4f}
+      Max:  {np.max(q_values):.4f}
+    
+    Non-zero Q-values:
+      Count: {len(non_zero_q):,}
+      Percentage: {100*len(non_zero_q)/q_table.size:.2f}%
+      Mean: {(np.mean(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+      Max:  {(np.max(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+    
+    States improved:
+      {np.sum(max_final > max_initial) if has_initial else 0} / {len(max_final)} ({((100*np.sum(max_final > max_initial)/len(max_final)) if has_initial else 0):.1f}%)
+        """
+    else:
+        stats_text = f"""
+    Q-table Statistics{title}
+    
+    Total States: {q_table.shape[0]}
+    Total Actions: {q_table.shape[1]}
+    Total Entries: {q_table.size:,}
+    
+    All Q-values:
+      Mean: {np.mean(q_values):.4f}
+      Std:  {np.std(q_values):.4f}
+      Min:  {np.min(q_values):.4f}
+      Max:  {np.max(q_values):.4f}
+      Median: {np.median(q_values):.4f}
+    
+    Non-zero Q-values:
+      Count: {len(non_zero_q):,}
+      Percentage: {100*len(non_zero_q)/q_table.size:.2f}%
+      Mean: {(np.mean(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+      Std:  {(np.std(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+      Max:  {(np.max(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+    
+    States with non-zero Q:
+      Count: {np.sum(np.any(q_table != 0, axis=1))}
+      Percentage: {100*np.sum(np.any(q_table != 0, axis=1))/q_table.shape[0]:.2f}%
+    """
+    axes[1, 1].text(0.05, 0.5, stats_text, fontsize=9, family='monospace',
+                   verticalalignment='center', transform=axes[1, 1].transAxes)
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Q-table statistics saved to {save_path}")
+    
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_q_table_statistics(q_table, state_names=None, save_path=None, show_plot=True, title=""):
+    """
+    Plot statistical summary of Q-table for large Q-tables (>=100 states).
+    Shows distribution and statistics instead of full heatmap.
+    
+    Args:
+        q_table: Q-table array (n_states x n_states)
+        state_names: list of state names for labels (not used for large tables)
+        save_path: path to save figure
+        show_plot: whether to display plot
+        title: plot title
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Flatten Q-table for analysis
+    q_values = q_table.flatten()
+    non_zero_q = q_values[q_values != 0]
+    
+    # Plot 1: Non-zero Q-value distribution (only meaningful values)
+    if len(non_zero_q) > 0:
+        axes[0, 0].hist(non_zero_q, bins=30, alpha=0.7, color='lightgreen', edgecolor='black')
+        axes[0, 0].set_xlabel('Q-value')
+        axes[0, 0].set_ylabel('Frequency')
+        axes[0, 0].set_title(f'Non-zero Q-value Distribution (n={len(non_zero_q):,})')
+        axes[0, 0].grid(True, alpha=0.3)
+    else:
+        axes[0, 0].text(0.5, 0.5, 'No non-zero Q-values', 
+                       ha='center', va='center', transform=axes[0, 0].transAxes)
+        axes[0, 0].set_title('Non-zero Q-value Distribution')
+    
+    # Plot 2: Max Q-value per state
+    max_q_per_state = np.max(q_table, axis=1)
+    axes[0, 1].plot(max_q_per_state, 'o-', markersize=3, linewidth=0.5, alpha=0.6, color='steelblue')
+    axes[0, 1].set_xlabel('State Index')
+    axes[0, 1].set_ylabel('Max Q-value')
+    axes[0, 1].set_title('Maximum Q-value per State')
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # Plot 3: Statistics summary (larger space)
+    axes[1, 0].axis('off')
+    stats_text = f"""
+    Q-table Statistics{title}
+    
+    Total States: {q_table.shape[0]}
+    Total Actions: {q_table.shape[1]}
+    Total Entries: {q_table.size:,}
+    
+    All Q-values:
+      Mean: {np.mean(q_values):.4f}
+      Std:  {np.std(q_values):.4f}
+      Min:  {np.min(q_values):.4f}
+      Max:  {np.max(q_values):.4f}
+      Median: {np.median(q_values):.4f}
+    
+    Non-zero Q-values:
+      Count: {len(non_zero_q):,}
+      Percentage: {100*len(non_zero_q)/q_table.size:.2f}%
+      Mean: {(np.mean(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+      Std:  {(np.std(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+      Max:  {(np.max(non_zero_q) if len(non_zero_q) > 0 else 0):.4f}
+    
+    States with non-zero Q:
+      Count: {np.sum(np.any(q_table != 0, axis=1))}
+      Percentage: {100*np.sum(np.any(q_table != 0, axis=1))/q_table.shape[0]:.2f}%
+    """
+    axes[1, 0].text(0.1, 0.5, stats_text, fontsize=10, family='monospace',
+                   verticalalignment='center', transform=axes[1, 0].transAxes)
+    
+    # Plot 4: Q-value range visualization (optional - show distribution of Q-value ranges)
+    if len(non_zero_q) > 0:
+        # Create bins for Q-value ranges
+        q_ranges = ['0-20', '20-40', '40-60', '60-80', '80-100', '>100']
+        q_counts = [
+            np.sum((non_zero_q >= 0) & (non_zero_q < 20)),
+            np.sum((non_zero_q >= 20) & (non_zero_q < 40)),
+            np.sum((non_zero_q >= 40) & (non_zero_q < 60)),
+            np.sum((non_zero_q >= 60) & (non_zero_q < 80)),
+            np.sum((non_zero_q >= 80) & (non_zero_q <= 100)),
+            np.sum(non_zero_q > 100)
+        ]
+        axes[1, 1].bar(q_ranges, q_counts, alpha=0.7, color='coral', edgecolor='black')
+        axes[1, 1].set_xlabel('Q-value Range')
+        axes[1, 1].set_ylabel('Count')
+        axes[1, 1].set_title('Distribution of Q-values by Range')
+        axes[1, 1].grid(True, alpha=0.3, axis='y')
+        # Rotate x-axis labels if needed
+        axes[1, 1].tick_params(axis='x', rotation=45)
+    else:
+        axes[1, 1].axis('off')
+        axes[1, 1].text(0.5, 0.5, 'No non-zero Q-values to visualize', 
+                       ha='center', va='center', transform=axes[1, 1].transAxes)
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Q-table statistics saved to {save_path}")
+    
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_q_table_comparison_statistics(initial_q_table, final_q_table, state_names=None,
+                                      save_path=None, show_plot=True, title=""):
+    """
+    Plot statistical comparison between initial and final Q-tables for large Q-tables.
+    Removed uninformative plots (Initial/Final/Change distributions dominated by zeros).
+    
+    Args:
+        initial_q_table: initial Q-table (before training, all zeros)
+        final_q_table: final Q-table (after convergence)
+        state_names: list of state names for labels (not used)
+        save_path: path to save figure
+        show_plot: whether to display plot
+        title: plot title
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    
+    # Flatten Q-tables for analysis
+    initial_q = initial_q_table.flatten()
+    final_q = final_q_table.flatten()
+    q_diff = final_q - initial_q
+    non_zero_final = final_q[final_q != 0]
+    non_zero_diff = q_diff[q_diff != 0]
+    
+    # Plot 1: Max Q-value per state comparison (most informative)
+    max_initial = np.max(initial_q_table, axis=1)
+    max_final = np.max(final_q_table, axis=1)
+    axes[0, 0].plot(max_initial, 'o-', markersize=2, linewidth=0.5, alpha=0.5, 
+                   label='Initial', color='blue')
+    axes[0, 0].plot(max_final, 'o-', markersize=2, linewidth=0.5, alpha=0.7, 
+                   label='Final', color='green')
+    axes[0, 0].set_xlabel('State Index')
+    axes[0, 0].set_ylabel('Max Q-value')
+    axes[0, 0].set_title('Max Q-value per State: Initial vs Final')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # Plot 2: Non-zero Q-value distribution (only meaningful values)
+    if len(non_zero_final) > 0:
+        axes[0, 1].hist(non_zero_final, bins=30, alpha=0.7, color='lightgreen', 
+                       edgecolor='black', label='Final (non-zero)')
+        axes[0, 1].set_xlabel('Q-value')
+        axes[0, 1].set_ylabel('Frequency')
+        axes[0, 1].set_title(f'Non-zero Q-values (Final, n={len(non_zero_final):,})')
+        axes[0, 1].legend()
+        axes[0, 1].grid(True, alpha=0.3)
+    else:
+        axes[0, 1].text(0.5, 0.5, 'No non-zero Q-values', 
+                       ha='center', va='center', transform=axes[0, 1].transAxes)
+        axes[0, 1].set_title('Non-zero Q-values')
+    
+    # Plot 3: Non-zero change distribution (only meaningful changes)
+    if len(non_zero_diff) > 0:
+        axes[1, 0].hist(non_zero_diff, bins=30, alpha=0.7, color='salmon', 
+                       edgecolor='black')
+        axes[1, 0].axvline(x=0, color='red', linestyle='--', linewidth=2, label='No change')
+        axes[1, 0].set_xlabel('Q-value Change')
+        axes[1, 0].set_ylabel('Frequency')
+        axes[1, 0].set_title(f'Non-zero Q-value Changes (n={len(non_zero_diff):,})')
+        axes[1, 0].legend()
+        axes[1, 0].grid(True, alpha=0.3)
+    else:
+        axes[1, 0].text(0.5, 0.5, 'No Q-value changes', 
+                       ha='center', va='center', transform=axes[1, 0].transAxes)
+        axes[1, 0].set_title('Q-value Changes')
+    
+    # Plot 4: Statistics summary
+    axes[1, 1].axis('off')
+    stats_text = f"""
+    Q-table Comparison Statistics{title}
+    
+    Initial Q-table:
+      Mean: {np.mean(initial_q):.4f}
+      Std:  {np.std(initial_q):.4f}
+      Min:  {np.min(initial_q):.4f}
+      Max:  {np.max(initial_q):.4f}
+      Non-zero: {np.sum(initial_q != 0):,} ({100*np.sum(initial_q != 0)/initial_q.size:.2f}%)
+    
+    Final Q-table:
+      Mean: {np.mean(final_q):.4f}
+      Std:  {np.std(final_q):.4f}
+      Min:  {np.min(final_q):.4f}
+      Max:  {np.max(final_q):.4f}
+      Non-zero: {np.sum(final_q != 0):,} ({100*np.sum(final_q != 0)/final_q.size:.2f}%)
+      Mean (non-zero): {(np.mean(non_zero_final) if len(non_zero_final) > 0 else 0):.4f}
+    
+    Change (Final - Initial):
+      Mean change: {np.mean(q_diff):.4f}
+      Std change:  {np.std(q_diff):.4f}
+      Max increase: {np.max(q_diff):.4f}
+      Max decrease: {np.min(q_diff):.4f}
+      Non-zero changes: {len(non_zero_diff):,}
+    
+    States improved:
+      {np.sum(max_final > max_initial)} / {len(max_final)} ({100*np.sum(max_final > max_initial)/len(max_final):.1f}%)
+    """
+    axes[1, 1].text(0.05, 0.5, stats_text, fontsize=9, family='monospace',
+                   verticalalignment='center', transform=axes[1, 1].transAxes)
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Q-table comparison statistics saved to {save_path}")
+    
+    if show_plot:
+        plt.show()
+    else:
+        plt.close()
+
+
 def plot_q_table_comparison(initial_q_table, final_q_table, state_names=None, 
                            save_path=None, show_plot=True, title=""):
     """
     Plot comparison between initial and final Q-tables.
+    For large Q-tables (>=100 states), uses unified statistical plot (same as heatmap).
+    Now both heatmap and comparison save to the same file for large Q-tables.
     
     Args:
         initial_q_table: initial Q-table (before training, all zeros)
@@ -207,6 +592,16 @@ def plot_q_table_comparison(initial_q_table, final_q_table, state_names=None,
         show_plot: whether to display plot
         title: plot title
     """
+    n_states = initial_q_table.shape[0]
+    
+    # For large Q-tables, use unified statistical plot (same file as heatmap)
+    if n_states >= 100:
+        # Use the same save_path as heatmap (they should be the same file now)
+        plot_unified_q_table_statistics(final_q_table, initial_q_table, 
+                                       state_names, save_path, show_plot, title)
+        return
+    
+    # For small Q-tables, use traditional heatmap comparison
     fig, axes = plt.subplots(1, 3, figsize=(18, 6))
     
     if state_names is None:
@@ -567,9 +962,9 @@ def plot_grid_policy(env, q_table, initial_region, target_region,
                                linewidth=0.5, zorder=1)
             ax.add_patch(rect)
     
-    # Find optimal path
-    initial_pos = env._get_region_center(env.region_map[initial_region])
-    target_pos = env._get_region_center(env.region_map[target_region])
+    # Find optimal path - use env's target_pos (center of target region)
+    initial_pos = env.initial_pos
+    target_pos = env.target_pos  # Use the actual target position from environment
     initial_state = env._pos_to_state(initial_pos)
     target_state = env._pos_to_state(target_pos)
     
@@ -589,10 +984,8 @@ def plot_grid_policy(env, q_table, initial_region, target_region,
         q_values = [q_table[current][a] for a in actions]
         best_action = actions[np.argmax(q_values)]
         
-        # Check if best action leads to target region
-        next_pos = env._state_to_pos(best_action)
-        region = env._get_region_at_pos(next_pos)
-        if region == env.region_map[target_region]:
+        # Check if best action leads to target position (not just region)
+        if best_action == target_state:
             path.append(best_action)
             break
         

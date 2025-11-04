@@ -19,7 +19,7 @@ class GridWorld2:
         Initialize the grid-based environment.
         
         Args:
-            grid_size: tuple of (rows, cols) for grid dimensions
+            grid_size: tuple of (rows, cols) for grid dimensions (default: 20x20)
             initial_region: starting region name ('A' through 'F')
             target_region: goal region name ('A' through 'F')
         """
@@ -42,6 +42,8 @@ class GridWorld2:
         self.target_region = target_region
         self.initial_pos = self._get_region_center(self.region_map[initial_region])
         self.current_pos = self.initial_pos
+        # Set target position (center of target region)
+        self.target_pos = self._get_region_center(self.region_map[target_region])
         
         # Reward parameters (compatible with GridWorld)
         self.reward_goal = 100.0
@@ -65,14 +67,14 @@ class GridWorld2:
         # Region C: bottom right
         self._fill_region(4, (rows*2//3, cols*3//4), (rows, cols), 'C')
         
-        # Region D: middle left
-        self._fill_region(5, (rows//3, 0), (rows*2//3, cols//3), 'D')
+        # Region D: top center (swapped with F)
+        self._fill_region(5, (0, cols//2), (rows//3, cols*3//4), 'D')
         
         # Region E: middle bottom
         self._fill_region(6, (rows*2//3, cols//3), (rows, cols*2//3), 'E')
         
-        # Region F: top center
-        self._fill_region(7, (0, cols//2), (rows//3, cols*3//4), 'F')
+        # Region F: middle left (swapped with D) - makes F->C path more complex
+        self._fill_region(7, (rows//3, 0), (rows*2//3, cols//3), 'F')
         
         # Add walls between regions with passages
         self._add_walls()
@@ -85,7 +87,7 @@ class GridWorld2:
         self.grid[r1:r2, c1:c2] = region_id
     
     def _add_walls(self):
-        """Add walls between regions with passages."""
+        """Add walls between regions with passages. More complex maze layout with more obstacles."""
         rows, cols = self.grid_rows, self.grid_cols
         
         # Vertical walls with gaps for passages
@@ -93,24 +95,78 @@ class GridWorld2:
         self.grid[0:rows//3, cols//3] = 1  # top part
         self.grid[rows*2//3:, cols//3] = 1  # bottom part
         
-        # Middle wall (x = cols//2) with gap
-        self.grid[0:rows//3, cols//2] = 1  # top part
+        # Middle wall (x = cols//2) - add partial top wall to create more complex path
+        # Keep small gap at top for F->middle path, but make it narrower
+        self.grid[0:rows//4, cols//2] = 1  # top part (smaller gap)
         self.grid[rows*2//3:, cols//2] = 1  # bottom part
         
-        # Right wall (x = cols*2//3) with gap
+        # Right wall (x = cols*2//3) with gap - make gap smaller
         self.grid[0:rows*2//3, cols*2//3] = 1  # top part
         self.grid[rows*4//5:, cols*2//3] = 1  # bottom part
         
+        # Additional vertical wall segments for complexity
+        # Add partial wall at cols//4 to create more maze-like structure
+        self.grid[rows//4:rows//2, cols//4] = 1  # middle-left vertical segment
+        
         # Horizontal walls with gaps for passages
-        # Top wall (y = rows//3) with gaps
+        # Top wall (y = rows//3) - create narrower gaps to make path more complex
         self.grid[rows//3, 0:cols//3] = 1  # left part
-        self.grid[rows//3, cols//2:cols*2//3] = 1  # middle part
+        # Narrow the middle gap - add some walls in the middle
+        self.grid[rows//3, cols//3:cols//2-2] = 1  # extend left wall (narrower gap)
+        self.grid[rows//3, cols//2+2:cols*2//3-2] = 1  # extend right wall (narrow gap)
         self.grid[rows//3, cols*4//5:] = 1  # right part
         
-        # Bottom wall (y = rows*2//3) with gaps
+        # Bottom wall (y = rows*2//3) - create narrower gaps
         self.grid[rows*2//3, 0:cols//3] = 1  # left part
-        self.grid[rows*2//3, cols//2:cols*2//3] = 1  # middle part
+        # Narrow the middle gap - make path more complex
+        self.grid[rows*2//3, cols//3:cols//2-2] = 1  # extend left wall (narrower gap)
+        self.grid[rows*2//3, cols//2+2:cols*2//3-2] = 1  # extend right wall (narrow gap)
         self.grid[rows*2//3, cols*4//5:] = 1  # right part
+        
+        # Add additional horizontal obstacles at different levels
+        # Middle horizontal obstacle (around rows//2)
+        mid_row = rows // 2
+        self.grid[mid_row, cols//3:cols//2-2] = 1  # left part of middle horizontal obstacle
+        self.grid[mid_row, cols//2+2:cols*2//3-2] = 1  # right part of middle horizontal obstacle
+        
+        # Additional horizontal obstacle at rows*3//5
+        obstacle_row = rows * 3 // 5
+        if obstacle_row < rows*2//3:
+            self.grid[obstacle_row, cols//3+1:cols//2-1] = 1  # left segment
+            self.grid[obstacle_row, cols//2+1:cols*2//3-1] = 1  # right segment
+        
+        # Add additional internal obstacles in regions to create detours
+        # Obstacle in region F (middle left, after swap) - forces detour for F->C path
+        if rows >= 20:
+            # Add multiple obstacles in F region (middle left)
+            self.grid[rows//2, cols//4] = 1
+            self.grid[rows//2+1, cols//4] = 1
+            self.grid[rows//2, cols//4+1] = 1
+        
+        # Obstacle in region E (middle bottom) - forces longer path
+        if rows >= 20:
+            # Add obstacle cluster in E region
+            self.grid[rows*3//4, cols*5//12] = 1
+            self.grid[rows*3//4, cols*5//12+1] = 1
+            self.grid[rows*3//4+1, cols*5//12] = 1
+            # Additional obstacle nearby
+            self.grid[rows*4//5, cols*7//12] = 1
+            self.grid[rows*4//5, cols*7//12+1] = 1
+        
+        # Add obstacles in D region (top center, after swap) to make navigation more complex
+        if rows >= 20:
+            # Small obstacle in D region (top center)
+            self.grid[rows//6, cols*5//8] = 1
+            self.grid[rows//6+1, cols*5//8] = 1
+        
+        # Add obstacles in A region to make A->C path more complex
+        if rows >= 20:
+            # Obstacle in A region
+            self.grid[rows//6, cols*7//8] = 1
+            self.grid[rows//6+1, cols*7//8] = 1
+        
+        # Ensure connectivity: verify that gaps exist at critical points
+        # The gaps are intentionally narrow (1-2 cells wide) to maintain connectivity
     
     def _get_region_center(self, region_idx):
         """Get center position of a region."""
@@ -213,9 +269,8 @@ class GridWorld2:
                 self.current_pos = target_pos
                 next_state = action
                 
-                # Check if reached target region
-                region = self._get_region_at_pos(target_pos)
-                if region is not None and region == self.region_map[self.target_region]:
+                # Check if reached target position (center of target region)
+                if target_pos == self.target_pos:
                     reward = self.reward_goal
                     done = True
                 else:
@@ -239,12 +294,9 @@ class GridWorld2:
         return self.get_state_name(self._pos_to_state(self.current_pos))
     
     def is_terminal(self, state):
-        """Check if state is in target region."""
+        """Check if state is at target position (center of target region)."""
         pos = self._state_to_pos(state)
-        region = self._get_region_at_pos(pos)
-        if region is not None:
-            return region == self.region_map[self.target_region]
-        return False
+        return pos == self.target_pos
     
     def get_grid(self):
         """Get grid for visualization."""

@@ -4,21 +4,23 @@ Initial state: F (index 5)
 Target state: C (index 2)
 """
 
+import os
 from environment import GridWorld
 from q_learning import train_q_learning, set_random_seed
-from visualization import plot_convergence, plot_q_table_heatmap, plot_policy, plot_q_table_comparison
+from visualization import plot_convergence, plot_q_table_heatmap, plot_q_table_comparison
 from data_utils import save_training_data
 from experiment_utils import print_q_table_summary, print_experiment_stats
 
 
-def main(alpha=0.1, gamma=0.9, exp_suffix=""):
+def main(alpha=0.1, gamma=0.9, exp_suffix="", file_suffix=""):
     """
     Run experiment 1: F -> C
     
     Args:
         alpha: learning rate
         gamma: discount factor
-        exp_suffix: suffix for experiment directory name
+        exp_suffix: suffix for experiment directory name (deprecated, kept for compatibility)
+        file_suffix: suffix for file names (e.g., "_alpha0_05_gamma0_8")
     """
     # set random seed for reproducibility
     set_random_seed(42)
@@ -33,8 +35,13 @@ def main(alpha=0.1, gamma=0.9, exp_suffix=""):
     # setup experiment
     initial_state = 5  # F
     target_state = 2   # C
-    exp_name = f"env1_exp1{exp_suffix}"
-    save_dir = f"results/{exp_name}"
+    # Use file_suffix for directory name if provided, otherwise use exp_suffix for backward compatibility
+    if file_suffix:
+        exp_name = f"env1_exp1{file_suffix}"
+        save_dir = "results/env1_exp1"  # Unified directory
+    else:
+        exp_name = f"env1_exp1{exp_suffix}"
+        save_dir = f"results/{exp_name}"
     
     # create environment
     env = GridWorld(initial_state=initial_state, target_state=target_state)
@@ -68,11 +75,14 @@ def main(alpha=0.1, gamma=0.9, exp_suffix=""):
     # print Q-table summary
     print_q_table_summary(env, final_q_table)
     
+    # create save directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+    
     # visualize
     print("\nGenerating convergence plot...")
     plot_convergence(
         episode_rewards, episode_steps, q_table_history,
-        save_path=f'{save_dir}/convergence_plot.png',
+        save_path=f'{save_dir}/convergence_plot{file_suffix}.png',
         show_plot=False,
         title_suffix=" - Experiment 1 (F -> C)"
     )
@@ -80,15 +90,7 @@ def main(alpha=0.1, gamma=0.9, exp_suffix=""):
     print("Generating Q-table heatmap...")
     plot_q_table_heatmap(
         final_q_table, state_names=env.states,
-        save_path=f'{save_dir}/qtable_heatmap.png',
-        show_plot=False,
-        title=" - Experiment 1 (F -> C)"
-    )
-    
-    print("Generating policy visualization...")
-    plot_policy(
-        env, final_q_table, initial_state, target_state,
-        save_path=f'{save_dir}/final_policy.png',
+        save_path=f'{save_dir}/qtable_heatmap{file_suffix}.png',
         show_plot=False,
         title=" - Experiment 1 (F -> C)"
     )
@@ -96,7 +98,7 @@ def main(alpha=0.1, gamma=0.9, exp_suffix=""):
     print("Generating Q-table comparison...")
     plot_q_table_comparison(
         initial_q_table, final_q_table, state_names=env.states,
-        save_path=f'{save_dir}/qtable_comparison.png',
+        save_path=f'{save_dir}/qtable_comparison{file_suffix}.png',
         show_plot=False,
         title=" - Experiment 1 (F -> C)"
     )
@@ -140,16 +142,16 @@ def run_parameter_grid(alpha_list=[0.1], gamma_list=[0.9]):
     
     for alpha in alpha_list:
         for gamma in gamma_list:
-            # create suffix for directory name
-            exp_suffix = f"_alpha{alpha}_gamma{gamma}"
-            exp_suffix = exp_suffix.replace(".", "_")  # replace dots for directory names
+            # create suffix for file names (not directory)
+            file_suffix = f"_alpha{alpha}_gamma{gamma}"
+            file_suffix = file_suffix.replace(".", "_")  # replace dots for file names
             
             print("\n" + "=" * 70)
             print(f"Running: alpha={alpha}, gamma={gamma}")
             print("=" * 70)
             
             try:
-                exp_name, save_dir = main(alpha=alpha, gamma=gamma, exp_suffix=exp_suffix)
+                exp_name, save_dir = main(alpha=alpha, gamma=gamma, file_suffix=file_suffix)
                 results.append({
                     'alpha': alpha,
                     'gamma': gamma,

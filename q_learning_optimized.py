@@ -1,9 +1,20 @@
 """
-Q-learning algorithm implementation.
+Optimized Q-learning algorithm implementation for performance.
+Uses sparse Q-table and reduced overhead for faster training.
 """
 
 import numpy as np
 import random
+from collections import defaultdict
+
+try:
+    from tqdm import tqdm
+    HAS_TQDM = True
+except ImportError:
+    HAS_TQDM = False
+    # Fallback progress bar if tqdm is not available
+    def tqdm(iterable, **kwargs):
+        return iterable
 
 
 def set_random_seed(seed=42):
@@ -18,22 +29,22 @@ def set_random_seed(seed=42):
 
 
 class QLearningAgent:
-    """Q-learning agent with epsilon-greedy action selection."""
+    """Optimized Q-learning agent with sparse Q-table and epsilon-greedy action selection."""
     
     def __init__(self, n_states, alpha=0.1, gamma=0.9, 
                  epsilon_start=0.9, epsilon_min=0.1, epsilon_decay='linear'):
         """
-        Initialize Q-learning agent.
+        Initialize Q-learning agent with sparse Q-table.
         
         Args:
-            n_states: number of states in the environment
+            n_states: number of states in the environment (for compatibility)
             alpha: learning rate
             gamma: discount factor
             epsilon_start: initial exploration rate
             epsilon_min: minimum exploration rate
             epsilon_decay: decay method ('linear' or 'exponential')
         """
-        self.n_states = n_states
+        self.n_states = n_states  # Kept for compatibility
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon_start
@@ -41,9 +52,9 @@ class QLearningAgent:
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
         
-        # initialize Q-table: Q[state][action]
-        # actions are target state indices, so Q-table is n_states x n_states
-        self.q_table = np.zeros((n_states, n_states))
+        # Use sparse Q-table: only store valid (state, action) pairs
+        # defaultdict(lambda: defaultdict(float)) creates nested dicts with 0.0 default
+        self.q_table = defaultdict(lambda: defaultdict(float))
     
     def choose_action(self, state, env):
         """
@@ -67,7 +78,7 @@ class QLearningAgent:
             return random.choice(valid_actions)
         else:
             # exploit: choose best action according to Q-table
-            # get Q values for valid actions
+            # get Q values for valid actions (use 0.0 if not in sparse table)
             q_values = [self.q_table[state][a] for a in valid_actions]
             max_q = max(q_values)
             
@@ -86,19 +97,20 @@ class QLearningAgent:
             next_state: next state index
             env: environment object
         """
-        # current Q value
+        # current Q value (defaultdict returns 0.0 if not present)
         current_q = self.q_table[state][action]
         
         # max Q value for next state (only consider valid actions)
         if env.is_terminal(next_state):
             # terminal state: no future reward
-            max_next_q = 0
+            max_next_q = 0.0
         else:
             valid_next_actions = env.get_valid_actions(next_state)
             if valid_next_actions:
+                # Get Q values for valid actions (defaultdict returns 0.0 if not present)
                 max_next_q = max([self.q_table[next_state][a] for a in valid_next_actions])
             else:
-                max_next_q = 0
+                max_next_q = 0.0
         
         # Q-learning update: Q(s,a) = Q(s,a) + α[r + γ*max(Q(s',a')) - Q(s,a)]
         new_q = current_q + self.alpha * (reward + self.gamma * max_next_q - current_q)
@@ -123,17 +135,31 @@ class QLearningAgent:
             self.epsilon = max(self.epsilon_min, self.epsilon * decay_rate)
     
     def get_q_table(self):
-        """Get current Q-table."""
-        return self.q_table.copy()
+        """
+        Get current Q-table as dense numpy array for compatibility.
+        Converts sparse representation to dense n_states × n_states matrix.
+        """
+        # Convert sparse dict to dense numpy array for compatibility
+        q_table_dense = np.zeros((self.n_states, self.n_states))
+        for state in self.q_table:
+            for action in self.q_table[state]:
+                q_table_dense[state][action] = self.q_table[state][action]
+        return q_table_dense
+    
+    def get_q_table_sparse(self):
+        """Get current Q-table in sparse format (for internal use)."""
+        # Return a copy of the nested dict structure
+        return {state: dict(actions) for state, actions in self.q_table.items()}
 
 
-def run_episode(env, agent):
+def run_episode(env, agent, max_steps=1000):
     """
-    Run one episode of Q-learning.
+    Run one episode of Q-learning (optimized - no changes needed here).
     
     Args:
         env: environment object
         agent: Q-learning agent
+        max_steps: maximum steps per episode to prevent infinite loops
     
     Returns:
         tuple of (total_reward, num_steps)
@@ -142,7 +168,7 @@ def run_episode(env, agent):
     total_reward = 0
     steps = 0
     
-    while True:
+    while steps < max_steps:
         # choose action
         action = agent.choose_action(state, env)
         if action is None:
@@ -169,9 +195,9 @@ def run_episode(env, agent):
 def train_q_learning(env, n_episodes=1000, alpha=0.1, gamma=0.9,
                      epsilon_start=0.9, epsilon_min=0.1, log_interval=100,
                      early_stop=True, early_stop_patience=100, early_stop_threshold=1e-4,
-                     random_seed=42):
+                     random_seed=42, early_stop_check_interval=10):
     """
-    Train Q-learning agent.
+    Train Q-learning agent (optimized version).
     
     Args:
         env: environment object
@@ -185,6 +211,7 @@ def train_q_learning(env, n_episodes=1000, alpha=0.1, gamma=0.9,
         early_stop_patience: number of consecutive episodes to check for early stop
         early_stop_threshold: Q-table change threshold for early stopping
         random_seed: random seed for reproducibility (default: 42)
+        early_stop_check_interval: check early stopping every N episodes (default: 10)
     
     Returns:
         tuple of (episode_rewards, episode_steps, q_table_history, early_stopped, initial_q_table)
@@ -198,31 +225,37 @@ def train_q_learning(env, n_episodes=1000, alpha=0.1, gamma=0.9,
     agent = QLearningAgent(n_states, alpha=alpha, gamma=gamma,
                           epsilon_start=epsilon_start, epsilon_min=epsilon_min)
     
-    # save initial Q-table (all zeros before training)
-    initial_q_table = agent.get_q_table().copy()
+    # save initial Q-table (all zeros, converted to dense format)
+    initial_q_table = agent.get_q_table()
     
     # storage for results
     episode_rewards = []
     episode_steps = []
     q_table_history = []  # list of (episode, q_table) tuples
     
-    # early stopping variables
-    previous_q_table = None
+    # early stopping variables (optimized: check less frequently)
+    previous_q_table_sparse = None
     early_stopped = False
     q_change_history = []  # store Q-table changes for sliding window
     
-    print(f"Starting Q-learning training with {n_episodes} episodes...")
+    print(f"Starting optimized Q-learning training with {n_episodes} episodes...")
     print(f"Parameters: alpha={alpha}, gamma={gamma}, epsilon_start={epsilon_start}, epsilon_min={epsilon_min}")
     if early_stop:
-        print(f"Early stopping: enabled (patience={early_stop_patience}, threshold={early_stop_threshold})")
+        print(f"Early stopping: enabled (patience={early_stop_patience}, threshold={early_stop_threshold}, check_interval={early_stop_check_interval})")
     print("-" * 60)
     
-    # Progress update interval (more frequent than log_interval for better feedback)
-    progress_interval = max(10, log_interval // 10)  # Update every 10 episodes or log_interval/10
+    # Calculate max steps per episode based on environment size
+    # For grid environments: max_steps = n_states * 2 (safety factor)
+    max_steps_per_episode = min(1000, n_states * 2)
     
-    for episode in range(n_episodes):
+    # Use tqdm for progress bar if available
+    episode_iterator = range(n_episodes)
+    if HAS_TQDM:
+        episode_iterator = tqdm(episode_iterator, desc="Training", unit="ep")
+    
+    for episode in episode_iterator:
         # run one episode
-        total_reward, steps = run_episode(env, agent)
+        total_reward, steps = run_episode(env, agent, max_steps=max_steps_per_episode)
         
         # record metrics
         episode_rewards.append(total_reward)
@@ -231,73 +264,79 @@ def train_q_learning(env, n_episodes=1000, alpha=0.1, gamma=0.9,
         # decay epsilon
         agent.decay_epsilon(episode, n_episodes)
         
-        # get current Q-table
-        current_q_table = agent.get_q_table()
-        
-        # save Q-table periodically for convergence analysis
+        # save Q-table periodically for convergence analysis (only when needed)
         if episode % log_interval == 0 or episode == n_episodes - 1:
-            q_table_history.append((episode, current_q_table.copy()))
+            q_table_dense = agent.get_q_table()  # Convert to dense only when saving
+            q_table_history.append((episode, q_table_dense))
         
-        # early stopping check: compute Q-table change every episode
-        if early_stop and episode > 0:
-            # compute change from previous episode
-            if previous_q_table is not None:
-                mean_change, max_change = compute_q_table_change(previous_q_table, current_q_table)
-                q_change_history.append(mean_change)
+        # early stopping check: only check every N episodes (optimized)
+        if early_stop and episode > 0 and episode % early_stop_check_interval == 0:
+            # Get sparse Q-table representation for comparison
+            current_q_table_sparse = agent.get_q_table_sparse()
+            
+            if previous_q_table_sparse is not None:
+                # Compute change only for states/actions that exist in either table
+                all_states = set(previous_q_table_sparse.keys()) | set(current_q_table_sparse.keys())
+                total_diff = 0.0
+                count = 0
                 
-                # keep only last 'patience' number of changes
-                if len(q_change_history) > early_stop_patience:
-                    q_change_history.pop(0)
-                
-                # check early stopping condition: if we have enough history
-                if len(q_change_history) >= early_stop_patience:
-                    # compute average change over the last 'patience' episodes
-                    avg_change = np.mean(q_change_history)
+                for state in all_states:
+                    prev_actions = previous_q_table_sparse.get(state, {})
+                    curr_actions = current_q_table_sparse.get(state, {})
+                    all_actions = set(prev_actions.keys()) | set(curr_actions.keys())
                     
-                    # if average change is below threshold, stop training
-                    if avg_change < early_stop_threshold:
-                        early_stopped = True
-                        print(f"\nEarly stopping triggered at episode {episode+1}")
-                        print(f"Average Q-table change over last {early_stop_patience} episodes: {avg_change:.8f}")
-                        print(f"Threshold: {early_stop_threshold}")
-                        # save final Q-table if not already saved
-                        saved_episodes = [ep for ep, _ in q_table_history]
-                        if episode not in saved_episodes:
-                            q_table_history.append((episode, current_q_table.copy()))
-                        break
-        
-        # update previous Q-table for next iteration
-        previous_q_table = current_q_table.copy()
-        
-        # print progress more frequently
-        if (episode + 1) % progress_interval == 0 or episode == 0 or episode == n_episodes - 1:
-            progress_pct = ((episode + 1) / n_episodes) * 100
-            # Calculate average over recent episodes (last progress_interval or all if not enough)
-            recent_episodes = min(progress_interval, len(episode_rewards))
-            avg_reward = np.mean(episode_rewards[-recent_episodes:]) if recent_episodes > 0 else episode_rewards[-1]
-            avg_steps = np.mean(episode_steps[-recent_episodes:]) if recent_episodes > 0 else episode_steps[-1]
+                    for action in all_actions:
+                        prev_q = prev_actions.get(action, 0.0)
+                        curr_q = curr_actions.get(action, 0.0)
+                        total_diff += abs(curr_q - prev_q)
+                        count += 1
+                
+                if count > 0:
+                    mean_change = total_diff / count
+                    q_change_history.append(mean_change)
+                    
+                    # keep only last 'patience' number of changes
+                    if len(q_change_history) > early_stop_patience:
+                        q_change_history.pop(0)
+                    
+                    # check early stopping condition: if we have enough history
+                    if len(q_change_history) >= early_stop_patience:
+                        # compute average change over the last 'patience' checks
+                        avg_change = np.mean(q_change_history)
+                        
+                        # if average change is below threshold, stop training
+                        if avg_change < early_stop_threshold:
+                            early_stopped = True
+                            if HAS_TQDM:
+                                tqdm.write(f"\nEarly stopping triggered at episode {episode+1}")
+                                tqdm.write(f"Average Q-table change over last {early_stop_patience} checks: {avg_change:.8f}")
+                                tqdm.write(f"Threshold: {early_stop_threshold}")
+                            else:
+                                print(f"\nEarly stopping triggered at episode {episode+1}")
+                                print(f"Average Q-table change over last {early_stop_patience} checks: {avg_change:.8f}")
+                                print(f"Threshold: {early_stop_threshold}")
+                            # save final Q-table if not already saved
+                            saved_episodes = [ep for ep, _ in q_table_history]
+                            if episode not in saved_episodes:
+                                q_table_dense = agent.get_q_table()
+                                q_table_history.append((episode, q_table_dense))
+                            break
             
-            # Simple progress bar
-            bar_length = 30
-            filled_length = int(bar_length * (episode + 1) / n_episodes)
-            bar = '█' * filled_length + '░' * (bar_length - filled_length)
-            
-            print(f"[{episode+1:4d}/{n_episodes}] [{bar}] {progress_pct:5.1f}% | "
-                  f"Reward: {avg_reward:6.2f} | Steps: {avg_steps:5.1f} | "
-                  f"Epsilon: {agent.epsilon:.3f}", end='\r')
+            # update previous Q-table for next check (store sparse representation)
+            previous_q_table_sparse = current_q_table_sparse
         
-        # detailed progress at log_interval
-        if (episode + 1) % log_interval == 0:
+        # detailed progress at log_interval (only if not using tqdm or at log points)
+        if not HAS_TQDM and (episode + 1) % log_interval == 0:
             avg_reward = np.mean(episode_rewards[-log_interval:])
             avg_steps = np.mean(episode_steps[-log_interval:])
             progress_pct = ((episode + 1) / n_episodes) * 100
-            print(f"\nEpisode {episode+1}/{n_episodes} ({progress_pct:.1f}%) | "
+            print(f"Episode {episode+1}/{n_episodes} ({progress_pct:.1f}%) | "
                   f"Avg reward: {avg_reward:.2f} | "
                   f"Avg steps: {avg_steps:.1f} | "
                   f"Epsilon: {agent.epsilon:.3f}")
     
-    # Print newline to clear the progress line if it exists
-    print()  # Clear the progress line
+    if HAS_TQDM:
+        print()  # Newline after tqdm
     print("-" * 60)
     if early_stopped:
         print(f"Training completed early at episode {len(episode_rewards)}!")
@@ -309,11 +348,11 @@ def train_q_learning(env, n_episodes=1000, alpha=0.1, gamma=0.9,
 
 def compute_q_table_change(q_table1, q_table2):
     """
-    Compute change between two Q-tables.
+    Compute change between two Q-tables (dense numpy arrays).
     
     Args:
-        q_table1: first Q-table
-        q_table2: second Q-table
+        q_table1: first Q-table (dense numpy array)
+        q_table2: second Q-table (dense numpy array)
     
     Returns:
         mean absolute difference and max absolute difference
