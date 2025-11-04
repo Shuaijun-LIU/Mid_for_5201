@@ -1,6 +1,7 @@
 # 项目特定文件夹
 ref/
 report/
+results/
 
 # Python
 __pycache__/
