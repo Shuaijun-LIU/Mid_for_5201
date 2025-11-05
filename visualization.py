@@ -97,7 +97,7 @@ def plot_convergence(episode_rewards, episode_steps, q_table_history,
     ax1.plot(conv_episodes, max_diffs, 'r-', label='Max Q-table change', linewidth=1.5)
     ax1.set_xlabel('Episode')
     ax1.set_ylabel('Q-table Change')
-    ax1.set_title(f'Q-table Convergence{title_suffix}')
+    ax1.set_title('Q-table Convergence')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     ax1.set_yscale('log')  # log scale for better visualization
@@ -109,7 +109,7 @@ def plot_convergence(episode_rewards, episode_steps, q_table_history,
     ax2.plot(episodes_reward, reward_ma, 'b-', label=f'Moving average (window={window_size})', linewidth=2)
     ax2.set_xlabel('Episode')
     ax2.set_ylabel('Total Reward')
-    ax2.set_title(f'Episode Rewards{title_suffix}')
+    ax2.set_title('Episode Rewards')
     ax2.legend()
     ax2.grid(True, alpha=0.3)
     
@@ -120,7 +120,7 @@ def plot_convergence(episode_rewards, episode_steps, q_table_history,
     ax3.plot(episodes_steps, steps_ma, 'r-', label=f'Moving average (window={window_size})', linewidth=2)
     ax3.set_xlabel('Episode')
     ax3.set_ylabel('Steps to Goal')
-    ax3.set_title(f'Episode Steps{title_suffix}')
+    ax3.set_title('Episode Steps')
     ax3.legend()
     ax3.grid(True, alpha=0.3)
     
@@ -129,7 +129,10 @@ def plot_convergence(episode_rewards, episode_steps, q_table_history,
     # save figure if path provided
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Convergence plot saved to {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Convergence plot saved to {save_path} and {eps_path}")
     
     # show plot
     if show_plot:
@@ -188,7 +191,7 @@ def plot_q_table_heatmap(q_table, state_names=None, save_path=None, show_plot=Tr
                           ha="center", va="center", color="white" if q_table[i, j] > threshold else "black",
                           fontsize=8)
     
-    ax.set_title(f'Q-table Heatmap{title}')
+    ax.set_title('Q-table Heatmap')
     ax.set_xlabel('Action (Target State)')
     ax.set_ylabel('State')
     
@@ -196,7 +199,10 @@ def plot_q_table_heatmap(q_table, state_names=None, save_path=None, show_plot=Tr
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Q-table heatmap saved to {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Q-table heatmap saved to {save_path} and {eps_path}")
     
     if show_plot:
         plt.show()
@@ -298,7 +304,7 @@ def plot_unified_q_table_statistics(q_table, initial_q_table=None, state_names=N
     axes[1, 1].axis('off')
     if has_initial:
         stats_text = f"""
-    Q-table Statistics{title}
+    Q-table Statistics
     
     Total States: {q_table.shape[0]}
     Total Entries: {q_table.size:,}
@@ -324,7 +330,7 @@ def plot_unified_q_table_statistics(q_table, initial_q_table=None, state_names=N
         """
     else:
         stats_text = f"""
-    Q-table Statistics{title}
+    Q-table Statistics
     
     Total States: {q_table.shape[0]}
     Total Actions: {q_table.shape[1]}
@@ -355,7 +361,10 @@ def plot_unified_q_table_statistics(q_table, initial_q_table=None, state_names=N
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Q-table statistics saved to {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Q-table statistics saved to {save_path} and {eps_path}")
     
     if show_plot:
         plt.show()
@@ -404,7 +413,7 @@ def plot_q_table_statistics(q_table, state_names=None, save_path=None, show_plot
     # Plot 3: Statistics summary (larger space)
     axes[1, 0].axis('off')
     stats_text = f"""
-    Q-table Statistics{title}
+    Q-table Statistics
     
     Total States: {q_table.shape[0]}
     Total Actions: {q_table.shape[1]}
@@ -459,7 +468,10 @@ def plot_q_table_statistics(q_table, state_names=None, save_path=None, show_plot
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Q-table statistics saved to {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Q-table statistics saved to {save_path} and {eps_path}")
     
     if show_plot:
         plt.show()
@@ -535,7 +547,7 @@ def plot_q_table_comparison_statistics(initial_q_table, final_q_table, state_nam
     # Plot 4: Statistics summary
     axes[1, 1].axis('off')
     stats_text = f"""
-    Q-table Comparison Statistics{title}
+    Q-table Comparison Statistics
     
     Initial Q-table:
       Mean: {np.mean(initial_q):.4f}
@@ -616,7 +628,7 @@ def plot_q_table_comparison(initial_q_table, final_q_table, state_names=None,
     plt.setp(axes[0].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     cbar1 = plt.colorbar(im1, ax=axes[0])
     cbar1.set_label('Q-value', rotation=270, labelpad=20)
-    axes[0].set_title(f'Initial Q-table (Before Training){title}')
+    axes[0].set_title('Initial Q-table (Before Training)')
     axes[0].set_xlabel('Action (Target State)')
     axes[0].set_ylabel('State')
     
@@ -636,7 +648,7 @@ def plot_q_table_comparison(initial_q_table, final_q_table, state_names=None,
     plt.setp(axes[1].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     cbar2 = plt.colorbar(im2, ax=axes[1])
     cbar2.set_label('Q-value', rotation=270, labelpad=20)
-    axes[1].set_title(f'Final Q-table (After Convergence){title}')
+    axes[1].set_title('Final Q-table (After Convergence)')
     axes[1].set_xlabel('Action (Target State)')
     axes[1].set_ylabel('State')
     
@@ -659,7 +671,7 @@ def plot_q_table_comparison(initial_q_table, final_q_table, state_names=None,
     plt.setp(axes[2].get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     cbar3 = plt.colorbar(im3, ax=axes[2])
     cbar3.set_label('Q-value Change', rotation=270, labelpad=20)
-    axes[2].set_title(f'Q-table Change (Final - Initial){title}')
+    axes[2].set_title('Q-table Change (Final - Initial)')
     axes[2].set_xlabel('Action (Target State)')
     axes[2].set_ylabel('State')
     
@@ -676,7 +688,10 @@ def plot_q_table_comparison(initial_q_table, final_q_table, state_names=None,
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Q-table comparison saved to {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Q-table comparison saved to {save_path} and {eps_path}")
     
     if show_plot:
         plt.show()
@@ -887,18 +902,15 @@ def plot_policy(env, q_table, initial_state, target_state, save_path=None, show_
     ax.set_aspect('equal')
     ax.axis('off')
     
-    # Add title
-    if path[-1] == target_state:
-        path_str = " → ".join([env.states[s] for s in path])
-        ax.set_title(f"Maze Layout Visualization {title}\nOptimal Path: {path_str}", 
-                     fontsize=14, weight='bold', pad=15)
-    else:
-        ax.set_title(f"Maze Layout Visualization {title}", fontsize=14, weight='bold', pad=15)
+    # No title for the entire figure (subplots can have titles if needed)
 
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Saved maze visualization → {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Saved maze visualization → {save_path} and {eps_path}")
     if show_plot:
         plt.show()
     else:
@@ -1047,19 +1059,15 @@ def plot_grid_policy(env, q_table, initial_region, target_region,
     ax.set_aspect('equal')
     ax.axis('off')
     
-    # Add title
-    if len(path) > 1:
-        ax.set_title(f"Grid-based Environment Visualization {title}\n"
-                    f"Path: {initial_region} -> {target_region} ({len(path)-1} steps)", 
-                    fontsize=14, weight='bold', pad=15)
-    else:
-        ax.set_title(f"Grid-based Environment Visualization {title}", 
-                    fontsize=14, weight='bold', pad=15)
+    # No title for the entire figure (subplots can have titles if needed)
     
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Saved grid visualization → {save_path}")
+        # Save EPS format with same name
+        eps_path = save_path.replace('.png', '.eps')
+        plt.savefig(eps_path, format='eps', bbox_inches='tight')
+        print(f"Saved grid visualization → {save_path} and {eps_path}")
     if show_plot:
         plt.show()
     else:

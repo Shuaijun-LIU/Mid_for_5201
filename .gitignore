@@ -43,7 +43,6 @@ ENV/
 *.iws
 *.ipr
 
-# IDE - Cursor
 .cursor/
 
 # 系统文件 - macOS

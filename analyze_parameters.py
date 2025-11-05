@@ -266,11 +266,14 @@ Steps: μ={np.mean(all_steps):.2f}, σ={np.std(all_steps):.2f}
 Range: [{np.min(all_steps):.2f}, {np.max(all_steps):.2f}]"""
     ax9.text(0.1, 0.5, summary, fontsize=10, verticalalignment='center', family='monospace')
     
-    plt.suptitle(f'Parameter Analysis: {exp_name}', fontsize=16)
+    # No title for the entire figure (subplots can have titles if needed)
     plt.tight_layout()
     
     save_path = os.path.join(save_dir, f'{exp_name}_parameter_analysis.png')
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    # Save EPS format with same name
+    eps_path = save_path.replace('.png', '.eps')
+    plt.savefig(eps_path, format='eps', bbox_inches='tight')
     plt.close()
     
     return metrics
@@ -440,13 +443,16 @@ def plot_cross_grid_comparison(grid_results, exp_base_name, exp_title):
     ax4.legend()
     ax4.grid(True, alpha=0.3)
     
-    plt.suptitle(f'Cross-Grid Comparison: {exp_title}', fontsize=16)
+    # No title for the entire figure (subplots can have titles if needed)
     plt.tight_layout()
     
     save_path = os.path.join('results', f'{exp_base_name}_cross_grid_comparison.png')
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    # Save EPS format with same name
+    eps_path = save_path.replace('.png', '.eps')
+    plt.savefig(eps_path, format='eps', bbox_inches='tight')
     plt.close()
-    print(f"Cross-grid comparison saved to: {save_path}")
+    print(f"Cross-grid comparison saved to: {save_path} and {eps_path}")
 
 
 def main():

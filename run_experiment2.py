@@ -5,7 +5,7 @@ Target state: C (index 2)
 """
 
 import os
-from environment import GridWorld
+from environment1 import GridWorld
 from q_learning import train_q_learning, set_random_seed
 from visualization import plot_convergence, plot_q_table_heatmap, plot_q_table_comparison
 from data_utils import save_training_data
